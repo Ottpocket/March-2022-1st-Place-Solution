@@ -150,3 +150,29 @@ print("  Value: ", trial.value)
 print("  Params: ")
 for key, value in trial.params.items():
     print("    {}: {}".format(key, value))
+
+    
+#Getting the Values for the submission
+train = data[data.test==False].reset_index(drop=True)
+test = data[data.test].reset_index(drop=True)
+
+#Getting the best features from model
+FEATURES = []
+for key, value in trial.params.items():
+    if key not in  ['only_test_hours', 'only_test_day']:
+        if value:
+            FEATURES.append(key)
+
+if trial.params['only_test_day']:
+    msk_day = train.time.dt.weekday.isin([0])
+else:
+    msk_day = pd.Series([True for i in range(train.shape[0])])
+if trial.params['only_test_hours']:
+    msk_hm = train.hm.isin(hm)
+else:
+    msk_hm = pd.Series([True for i in range(train.shape[0])])
+
+model = LGBMRegressor()
+model.fit(train.loc[msk_day & msk_hm, FEATURES], train.loc[msk_day & msk_hm, TARGET])
+
+ss[TARGET] = model.predict(test[FEATURES])
